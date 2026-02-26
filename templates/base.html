@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>One Step Greener – Attendance</title>
+    <meta name="description" content="One Step Greener – Face recognition attendance for waste management">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="app-shell">
+        {% block content %}{% endblock %}
+    </div>
+
+    <!-- Global snackbar (popup / snack bar) for alerts -->
+    <div id="appSnackbar" class="snackbar" role="alert" aria-live="polite">
+        <span class="snackbar-icon"></span>
+        <span class="snackbar-message"></span>
+    </div>
+
+    <script>
+    window.showSnackbar = function(message, type) {
+        type = type || 'info';
+        var el = document.getElementById('appSnackbar');
+        if (!el) return;
+        el.className = 'snackbar snackbar-' + type + ' show';
+        var icon = el.querySelector('.snackbar-icon');
+        var msg = el.querySelector('.snackbar-message');
+        icon.textContent = type === 'success' ? '✓' : (type === 'error' ? '!' : 'ℹ');
+        if (msg) msg.textContent = message;
+        clearTimeout(window._snackbarTimer);
+        window._snackbarTimer = setTimeout(function() { el.classList.remove('show'); }, 4500);
+    };
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

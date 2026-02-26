@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="top-bar">
+    <a href="/dashboard" style="color: var(--color-text); text-decoration: none;">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+        </svg>
+    </a>
+    <h2>Register</h2>
+    <a href="/dashboard" class="top-bar-logo-wrap">
+        <img src="{{ url_for('static', filename='images/logo.png') }}" alt="One Step Greener" class="top-bar-logo top-bar-logo-sm" />
+    </a>
+</div>
+
+<!-- PIN gate: always shown first; hidden after correct PIN -->
+<div id="pinGate" class="pin-gate">
+    <p class="pin-prompt">Enter PIN to access Register.</p>
+    <input type="password" id="pinInput" class="pin-input" placeholder="PIN" maxlength="8" inputmode="numeric" autocomplete="off" />
+    <button type="button" id="pinSubmit" class="btn-primary pin-submit">Continue</button>
+    <p id="pinError" class="pin-error" style="display: none;"></p>
+</div>
+
+<!-- Register form: hidden until PIN verified; switchable tab Employee | Manforce -->
+<div id="registerForm" class="register-form-locked" style="display: none;">
+    <div class="register-tabs" role="tablist">
+        <button type="button" id="tabEmployee" class="register-tab active" role="tab" aria-selected="true" data-tab="employee">Employee</button>
+        <button type="button" id="tabManforce" class="register-tab" role="tab" aria-selected="false" data-tab="manforce">Manforce</button>
+    </div>
+    <div id="panelEmployee" class="register-panel active" role="tabpanel">
+        <input type="text" id="employeeCode" placeholder="Employee code">
+        <p class="status-text" id="statusTextEmployee">Align face within frame</p>
+        <button id="btnRegisterEmployee" class="btn-primary" disabled>Register</button>
+    </div>
+    <div id="panelManforce" class="register-panel" role="tabpanel" hidden>
+        <input type="text" id="manforceAadhaar" placeholder="Aadhaar number">
+        <input type="text" id="manforceName" placeholder="Full name">
+        <input type="text" id="manforceMobile" placeholder="Mobile number">
+        <p class="status-text" id="statusTextManforce">Align face within frame</p>
+        <button id="btnRegisterManforce" class="btn-primary" disabled>Register</button>
+    </div>
+    <div class="video-rect-container register-video-shared">
+        <video id="videoFeed" autoplay playsinline muted></video>
+        <div class="rect-overlay"></div>
+        <svg class="progress-ring" viewBox="0 0 40 40">
+            <circle cx="20" cy="20" r="18" stroke="#333" stroke-width="4" fill="none"/>
+            <circle id="progressCircle" cx="20" cy="20" r="18" stroke="var(--color-primary)" stroke-width="4" fill="none" stroke-dasharray="113" stroke-dashoffset="113" transform="rotate(-90 20 20)"/>
+        </svg>
+    </div>
+    <p class="status-text" id="statusText">Align face within frame</p>
+    <p class="status-hint register-capture-hint">Look at the camera and blink naturally during capture.</p>
+</div>
+
+<!-- Spoof toast (same as attendance) -->
+<div id="spoofToast" class="toast toast-danger" role="alert" aria-live="polite">
+    <span class="toast-icon">⚠</span>
+    <div class="toast-body">
+        <strong class="toast-title">Spoofing detected</strong>
+        <p class="toast-message" id="spoofToastMessage">Use a live face, not a photo or screen.</p>
+    </div>
+</div>
+
+<div id="successState" class="success-state" style="display:none;">
+    <img src="{{ url_for('static', filename='images/face-id-success.png') }}" alt="Face registered" class="success-face-icon" />
+    <h2>Registered</h2>
+    <div class="chip" id="successChip"></div>
+    <button class="btn-outline" onclick="location.reload()">Register Another</button>
+    <br>
+    <a href="/dashboard" style="color: var(--color-text-muted); font-size: 13px; margin-top: 20px; display:inline-block;">Back to check in</a>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+    var pinGate = document.getElementById('pinGate');
+    var registerForm = document.getElementById('registerForm');
+    var pinInput = document.getElementById('pinInput');
+    var pinSubmit = document.getElementById('pinSubmit');
+    var pinError = document.getElementById('pinError');
+
+    if (pinGate && registerForm && pinInput && pinSubmit) {
+        function doVerify() {
+            var pin = (pinInput.value || '').trim();
+            pinError.style.display = 'none';
+            if (!pin) {
+                pinError.textContent = 'Enter PIN';
+                pinError.style.display = 'block';
+                return;
+            }
+            pinSubmit.disabled = true;
+            fetch('/api/verify-pin', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ pin: pin })
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                pinSubmit.disabled = false;
+                if (data.status === 'ok') {
+                    pinGate.style.display = 'none';
+                    registerForm.style.display = 'block';
+                    if (window.loadRegisterScript) window.loadRegisterScript();
+                } else {
+                    pinError.textContent = data.message || 'Incorrect PIN';
+                    pinError.style.display = 'block';
+                }
+            })
+            .catch(function() {
+                pinSubmit.disabled = false;
+                pinError.textContent = 'Request failed';
+                pinError.style.display = 'block';
+            });
+        }
+        pinSubmit.addEventListener('click', doVerify);
+        pinInput.addEventListener('keydown', function(e) { if (e.key === 'Enter') doVerify(); });
+
+        window.loadRegisterScript = function() {
+            if (window.registerScriptLoaded) return;
+            window.registerScriptLoaded = true;
+            var s = document.createElement('script');
+            s.src = "{{ url_for('static', filename='js/register.js') }}";
+            document.body.appendChild(s);
+        };
+    }
+})();
+</script>
+{% endblock %}

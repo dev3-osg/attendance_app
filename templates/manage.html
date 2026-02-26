@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="top-bar">
+    <a href="/dashboard" style="color: var(--color-text); text-decoration: none;">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+        </svg>
+    </a>
+    <h2>Delete users</h2>
+    <a href="/dashboard" class="top-bar-logo-wrap">
+        <img src="{{ url_for('static', filename='images/logo.png') }}" alt="One Step Greener" class="top-bar-logo top-bar-logo-sm" />
+    </a>
+</div>
+
+<section class="manage-section">
+    <p class="manage-intro">Registered users. To remove a user, delete them from the database.</p>
+    <div id="manageList" class="manage-list">
+        <span class="manage-loading" id="manageLoading">Loading…</span>
+        <ul id="manageUl" class="manage-ul" style="display: none;"></ul>
+        <p id="manageEmpty" class="manage-empty" style="display: none;">No registered users.</p>
+    </div>
+</section>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+    var loading = document.getElementById('manageLoading');
+    var ul = document.getElementById('manageUl');
+    var empty = document.getElementById('manageEmpty');
+
+    function loadList() {
+        loading.style.display = 'block';
+        ul.style.display = 'none';
+        empty.style.display = 'none';
+        fetch('/api/employees')
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                loading.style.display = 'none';
+                if (data.employees && data.employees.length > 0) {
+                    ul.style.display = 'block';
+                    ul.innerHTML = '';
+                    data.employees.forEach(function(emp) {
+                        var li = document.createElement('li');
+                        li.className = 'manage-item';
+                        li.innerHTML = '<span class="manage-item-name">' + (emp.name || emp.id) + ' <span class="manage-item-id">' + (emp.id || '') + '</span></span>';
+                        ul.appendChild(li);
+                    });
+                } else {
+                    empty.style.display = 'block';
+                }
+            })
+            .catch(function() {
+                loading.textContent = 'Could not load list.';
+                loading.style.display = 'block';
+            });
+    }
+
+    loadList();
+})();
+</script>
+{% endblock %}
